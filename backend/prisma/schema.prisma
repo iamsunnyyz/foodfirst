@@ -1,0 +1,124 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+// schema.prisma
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  username      String
+  email         String    @unique
+  password_hash String
+  phone_number  String?
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  orders        Order[]
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Vendor {
+  id               Int      @id @default(autoincrement())
+  name             String
+  email            String   @unique
+  password         String
+  shop_name        String
+  shop_address     String
+  shop_status      String // Example: "OPEN" or "CLOSED"
+  shop_id          String   @unique @default(uuid()) // Unique Shop ID
+  shop_description String?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  // Reverse relations
+  orders Order[]
+  items  Item[]
+}
+
+model Order {
+  id          Int      @id @default(autoincrement())
+  user_id     Int
+  vendor_id   Int
+  total_price Float
+  status      String
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  user        User        @relation(fields: [user_id], references: [id])
+  vendor      Vendor      @relation(fields: [vendor_id], references: [id])
+  order_items OrderItem[]
+}
+
+model Item {
+  id          Int      @id @default(autoincrement())
+  vendor_id   Int
+  name        String
+  image       String?
+  description String
+  category    String
+  price       Float
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  vendor    Vendor      @relation(fields: [vendor_id], references: [id])
+  OrderItem OrderItem[]
+}
+
+model OrderItem {
+  order_id Int
+  item_id  Int
+  quantity Int
+  price    Float
+
+  order Order @relation(fields: [order_id], references: [id])
+  item  Item  @relation(fields: [item_id], references: [id])
+
+  @@id([order_id, item_id])
+}
+
+model Account {
+  id                Int     @id @default(autoincrement())
+  user_id           Int
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id            Int      @id @default(autoincrement())
+  session_token String   @unique
+  user_id       Int
+  expires       DateTime
+
+  user User @relation(fields: [user_id], references: [id])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
